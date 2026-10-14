@@ -17,6 +17,8 @@ html,
 body {
   margin: 0;
   height: 100%;
+  /* exactly the visible screen, even as phone browser bars come and go */
+  height: 100dvh;
 }
 
 body {
@@ -1275,38 +1277,104 @@ main {
 .cook-strip {
   flex: none;
   order: 4;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
+  position: relative;
   margin-top: 8px;
-  padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.6);
+}
+
+.cook-strip-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 11px 40px 11px 14px;
   color: var(--muted);
-  font-size: 13.5px;
-  line-height: 1.45;
+  font-size: 13px;
+  line-height: 1.4;
   text-decoration: none;
 }
 
-.cook-strip span {
-  flex: 1 1 220px;
+.cook-strip-link > span {
+  flex: 1 1 200px;
 }
 
 .cook-strip strong {
-  display: block;
   color: var(--ink);
-  font-size: 15px;
+  font-size: 14px;
 }
 
-.cook-strip > b {
-  padding: 9px 16px;
+.cook-strip-link > b {
+  padding: 7px 14px;
   border-radius: 999px;
   background: var(--oc-amber-d);
   color: #000;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.cook-arrow {
+  display: none;
+  font-style: normal;
+}
+
+.cook-strip-x {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  backdrop-filter: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cook-strip-x:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* made smaller: one quiet line */
+.cook-strip.min {
+  border-color: transparent;
+  background: none;
+}
+
+.cook-strip.min .cook-strip-link {
+  flex-wrap: nowrap;
+  padding: 6px 2px;
+}
+
+.cook-strip.min .cook-more,
+.cook-strip.min .cook-strip-x {
+  display: none;
+}
+
+.cook-strip.min .cook-strip-link > span {
+  flex: none;
+}
+
+.cook-strip.min strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.cook-strip.min .cook-strip-link > b {
+  padding: 0;
+  background: none;
+  color: var(--oc-amber);
+}
+
+.cook-strip.min .cook-arrow {
+  display: inline;
 }
 
 /* first visit: the search box glows softly until it's used */

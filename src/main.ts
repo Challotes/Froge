@@ -105,7 +105,8 @@ function renderAdd() {
 }
 
 function showAdd() {
-  if (!showing || showing.id === 'offline') return
+  // only for ordinals the visitor looked up: random cards can't be ordered
+  if (!showing || showing.id === 'offline' || !owned.includes(showing)) return
   renderAdd()
   addBtn.hidden = false
   placeAdd()
@@ -559,7 +560,12 @@ filterInput.addEventListener('input', applyFilter)
 const scrim = $('#scrim')
 let lastFocus: HTMLElement | null = null
 
+// the "Got an idea?" box in Your ordinals can be made smaller; it's full size again next time
+const cookStrip = $('#cook-strip')
+cookStrip.querySelector('.cook-strip-x')!.addEventListener('click', () => cookStrip.classList.add('min'))
+
 function openSheet(id: string) {
+  if (id === '#collection') cookStrip.classList.remove('min')
   closeSheets(false)
   lastFocus = document.activeElement as HTMLElement
   const sheet = $(id)
