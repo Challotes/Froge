@@ -1,0 +1,12 @@
+node_modules
+dist
+
+# local scratch data (debug dumps of indexer responses)
+r.json
+
+# never commit secrets or local env files
+.env
+.env.*
+*.local
+*.pem
+*.key

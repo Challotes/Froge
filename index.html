@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Froge</title>
+    <meta name="description" content="Steelmint your ordinals: stainless-steel cards of any ordinal you own." />
+    <link rel="icon" href="/frog-face.webp" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Caveat:wght@700&display=swap" rel="stylesheet" />
+    <link rel="preload" href="/frog-bg.webp" as="image" crossorigin="anonymous" />
+  </head>
+  <body>
+    <div class="aura" aria-hidden="true"></div>
+
+    <header class="top">
+      <div class="brand-col">
+      <div class="brand" aria-label="Froge Proof.fun">
+        <!-- the smile under R and O says "swap them": FROGE → FORGE -->
+        <span class="brand-mark" aria-hidden="true"><span class="brand-word">FROGE</span><svg class="brand-smile" viewBox="0 0 100 34"><defs><linearGradient id="smile-ink" x1="0" x2="1"><stop offset="0" stop-color="#ff6be6" /><stop offset="0.5" stop-color="#fff" /><stop offset="1" stop-color="#5ef0ff" /></linearGradient></defs><path d="M10 12 C 32 32, 68 32, 90 12" /><path d="M22 8 L9 11 L13 24" /><path d="M78 8 L91 11 L87 24" /></svg></span>
+        <span class="brand-tag" aria-hidden="true"><span class="brand-proof">Proof</span><span class="brand-fun">.fun</span></span>
+      </div>
+      <div class="brand-line"><b>Steelmint</b> your ordinals</div>
+      </div>
+      <form id="address-form" class="lookup" autocomplete="off">
+        <input id="address" placeholder="Address, Twetch name or ordinal location" aria-label="Ordinals address" spellcheck="false" />
+        <button type="submit">Show ordinals</button>
+      </form>
+      <button id="cart-btn" class="cart-btn" aria-label="Open cart" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.1 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6.2" /><circle cx="10" cy="20" r="1.4" /><circle cx="17" cy="20" r="1.4" /></svg>
+        <span id="cart-count" class="badge" hidden>0</span>
+        <span id="cart-total" class="cart-total">Cart</span>
+      </button>
+    </header>
+
+    <main>
+      <button id="prev" class="nav prev" aria-label="Previous card" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
+      <div id="stage" class="stage" aria-label="Froge holding a Frog Cartel card">
+        <button id="add" class="add" hidden>
+          <span class="add-label">Add to cart</span>
+          <span id="add-price" class="add-price"></span>
+        </button>
+      </div>
+      <button id="fwd" class="nav fwd" aria-label="Next card">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+      </button>
+    </main>
+
+    <footer class="hud">
+      <div class="now">
+        <div id="status" class="status">Waking the frog…</div>
+        <div id="card-title" class="card-title">&nbsp;</div>
+        <div id="card-meta" class="card-meta">&nbsp;</div>
+      </div>
+      <div class="controls">
+        <button id="browse" class="primary" aria-haspopup="dialog">Your ordinals <span id="browse-count" class="pill" hidden></span></button>
+        <button id="pause" aria-pressed="false">Pause</button>
+      </div>
+    </footer>
+
+    <div id="scrim" class="scrim" hidden></div>
+
+    <aside id="collection" class="sheet" role="dialog" aria-modal="true" aria-labelledby="collection-title" hidden>
+      <div class="sheet-head">
+        <div>
+          <div id="profile" class="profile" hidden></div>
+          <h2 id="collection-title">Your ordinals</h2>
+          <p id="collection-sub" class="sub"></p>
+          <p id="bg-note" class="bg-note" hidden></p>
+        </div>
+        <button class="close" data-close aria-label="Close">×</button>
+      </div>
+      <form id="sheet-lookup" class="lookup sheet-lookup" autocomplete="off">
+        <input id="sheet-address" placeholder="Address, Twetch name or ordinal location" aria-label="Ordinals address" spellcheck="false" />
+        <button type="submit">Show ordinals</button>
+      </form>
+      <div id="chips" class="chips" role="tablist" aria-label="Collections"></div>
+      <input id="filter" class="filter" placeholder="Find a name, number or trait" aria-label="Filter your ordinals" spellcheck="false" />
+      <div id="people" class="people" hidden></div>
+      <div id="grid" class="grid"></div>
+      <p id="grid-msg" class="empty"></p>
+    </aside>
+
+    <aside id="cart" class="sheet" role="dialog" aria-modal="true" aria-labelledby="cart-title" hidden>
+      <div class="sheet-head">
+        <div>
+          <h2 id="cart-title">Your cart</h2>
+          <p class="sub">Printed holo cards, shipped to you</p>
+        </div>
+        <button class="close" data-close aria-label="Close">×</button>
+      </div>
+      <ol id="ladder" class="ladder" aria-label="Bulk pricing"></ol>
+      <ul id="lines" class="lines"></ul>
+      <p id="cart-empty" class="empty">Nothing here yet. When a frog you like flips face up, hit <b>Add to cart</b>.</p>
+      <div class="summary">
+        <div class="row"><span>Subtotal</span><b id="subtotal">$0</b></div>
+        <div class="row save" id="save-row" hidden><span>Bulk saving</span><b id="savings"></b></div>
+        <button id="checkout" class="primary checkout" disabled>Checkout</button>
+      </div>
+    </aside>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
