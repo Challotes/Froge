@@ -1353,3 +1353,56 @@ main {
     font-size: 15px;
   }
 }
+
+/* phones: a compact footer so the frog and card get the room.
+   Label on top, name and rank beside the buttons, contributor hint on one line. */
+@media (max-width: 560px) {
+  .hud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'status status'
+      'title controls'
+      'meta controls'
+      'hint hint';
+    align-items: center;
+    gap: 0 10px;
+    padding: 6px 16px 12px;
+  }
+  .now {
+    display: contents;
+  }
+  .status {
+    grid-area: status;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+  .card-title {
+    grid-area: title;
+    font-size: 19px;
+    line-height: 1.2;
+    align-self: end;
+  }
+  .card-meta {
+    grid-area: meta;
+    font-size: 13px;
+    align-self: start;
+  }
+  .cook-hint {
+    grid-area: hint;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .hint-long {
+    display: none;
+  }
+  .controls {
+    grid-area: controls;
+    gap: 6px;
+  }
+  .controls button {
+    padding: 8px 13px;
+    font-size: 14px;
+  }
+}
