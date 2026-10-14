@@ -1308,3 +1308,48 @@ main {
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* first visit: the search box glows softly until it's used */
+.lookup.beckon input {
+  border-color: rgba(56, 232, 255, 0.55);
+  animation: beckon 2.4s ease-in-out infinite;
+}
+
+.lookup.beckon input::placeholder {
+  color: var(--ink);
+  opacity: 0.8;
+}
+
+@keyframes beckon {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(255, 63, 216, 0),
+      0 0 12px rgba(56, 232, 255, 0.22);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(255, 63, 216, 0.22),
+      0 0 24px rgba(56, 232, 255, 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lookup.beckon input {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(255, 63, 216, 0.22), 0 0 18px rgba(56, 232, 255, 0.35);
+  }
+}
+
+/* phones: the frog area takes only the room left between header and footer,
+   so it can't run under the card's name; Add to cart is a little smaller */
+@media (max-width: 760px) {
+  main {
+    min-height: 0;
+  }
+  .add {
+    gap: 10px;
+    padding: 5px 5px 5px 16px;
+    font-size: 15px;
+  }
+}

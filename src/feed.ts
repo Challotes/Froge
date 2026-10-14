@@ -9,6 +9,13 @@ export const FROG_CARTEL = {
   approxSupply: 3150,
 }
 
+// numbered 1–10,000; Twetch serves each one with its traits and rarity
+export const NOOGIES = {
+  name: 'NOOGIES',
+  twetchCollection: 'df0c100a282e695a2b03ff4f484e266ba47691e1d753bf4cc8428b80a8af14f7',
+  supply: 10000,
+}
+
 import { scriptPushes, unwrapTx } from './bfile'
 import type { TwetchToken } from './links'
 
@@ -121,8 +128,16 @@ function shuffle<T>(a: T[]): T[] {
   return a
 }
 
-/** A random slice of the collection — what strangers see. */
+/** What strangers see: random Frog Cartel and NOOGIES, half each, shuffled together. */
 export async function randomCards(count = 16): Promise<CardItem[]> {
+  const half = Math.ceil(count / 2)
+  const [cartel, noogies] = await Promise.allSettled([randomCartel(half), randomNoogies(count - half)])
+  const cards = [cartel, noogies].flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+  if (!cards.length) throw cartel.status === 'rejected' ? cartel.reason : new Error('No random cards')
+  return shuffle(cards)
+}
+
+async function randomCartel(count: number): Promise<CardItem[]> {
   const offset = Math.floor(Math.random() * (FROG_CARTEL.approxSupply - count))
   const txos = await getJson(
     `${API}/txos/search/unspent?q=${collectionQuery()}&limit=${count}&offset=${offset}`,
@@ -132,7 +147,32 @@ export async function randomCards(count = 16): Promise<CardItem[]> {
   for (const c of cards) {
     if (c.number != null) c.twetch = { collection: FROG_CARTEL.twetchCollection, number: c.number }
   }
-  return shuffle(cards)
+  return cards
+}
+
+/** Random NOOGIES straight from Twetch, which already has their traits and rarity. */
+async function randomNoogies(count: number): Promise<CardItem[]> {
+  const numbers = new Set<number>()
+  while (numbers.size < count) numbers.add(1 + Math.floor(Math.random() * NOOGIES.supply))
+  const found = await Promise.all(
+    [...numbers].map((n) =>
+      fetch(`https://api.twetch.com/v1/tokens/${NOOGIES.twetchCollection}/${n}`, { signal: AbortSignal.timeout(15_000) })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ),
+  )
+  const cards: CardItem[] = []
+  for (const r of found) {
+    if (!r?.token || !r.state) continue
+    const item = twetchCard({ collection: NOOGIES.twetchCollection, collectionName: NOOGIES.name, token: r.token, state: r.state })
+    if (!item) continue
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    item.traits = (r.token.attributes ?? []).map((a: any) => ({ name: a.traitType, value: String(a.value) }))
+    item.rarity = r.token.rarity || 'Common'
+    twetchChecked.set(item, Promise.resolve()) // already Twetch's own data
+    cards.push(item)
+  }
+  return cards
 }
 
 const PAGE = 300

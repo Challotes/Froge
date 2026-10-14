@@ -90,7 +90,9 @@ function placeAdd() {
   const c = stage.canvas.getBoundingClientRect()
   const s = stageEl.getBoundingClientRect()
   addBtn.style.left = `${c.left - s.left + a.x}px`
-  addBtn.style.top = `${Math.min(c.top - s.top + a.y + 14, s.height - 30)}px`
+  // under the card, but never below the stage, where it would cover the card's name
+  const h = addBtn.offsetHeight || 48
+  addBtn.style.top = `${Math.min(c.top - s.top + a.y + 14, s.height - h - 8)}px`
 }
 
 function renderAdd() {
@@ -105,8 +107,8 @@ function renderAdd() {
 function showAdd() {
   if (!showing || showing.id === 'offline') return
   renderAdd()
-  placeAdd()
   addBtn.hidden = false
+  placeAdd()
   addBtn.classList.remove('out')
 }
 
@@ -652,7 +654,7 @@ async function useAddress(address: string, focus?: string, known?: TwetchWallet)
     )
     traits.finally(() => id === lookup && background('traits', null))
     if (!found.length) {
-      if (twetch) return searchFailed('No ordinals found · showing random frogs', 'No ordinals found in this wallet.')
+      if (twetch) return searchFailed('No ordinals found · showing random cards', 'No ordinals found in this wallet.')
       // the co-sign search is still going and may yet find some
       return showLoading('Nothing here yet · checking linked addresses…')
     }
@@ -674,7 +676,7 @@ async function useAddress(address: string, focus?: string, known?: TwetchWallet)
     console.warn('[froge] address lookup failed', e)
     if (id !== lookup) return
     searchFailed(
-      'The ordinals server didn’t answer · showing random frogs',
+      'The ordinals server didn’t answer · showing random cards',
       'The ordinals server didn’t answer. If that’s the right address, press Show ordinals to try again.',
     )
   }
@@ -690,7 +692,7 @@ async function addCosigned(id: number, address: string) {
       background('cosign', null)
       // still nothing after the slow search too
       if (!owned.length && gridMsg.classList.contains('loading'))
-        searchFailed('No ordinals at that address · showing random frogs', 'No ordinals found at that address or any linked to it.')
+        searchFailed('No ordinals at that address · showing random cards', 'No ordinals found at that address or any linked to it.')
     }
   }
 }
@@ -863,14 +865,53 @@ if (pose) {
 
 renderCart()
 
+// --- first visit: draw the eye to the search box --------------------------------
+// A soft pulsing glow, and the hint types itself out with a blinking caret,
+// until the visitor clicks into the box or a search starts.
+function beckon() {
+  const form = $('#address-form')
+  const input = $<HTMLInputElement>('#address')
+  const hint = input.placeholder
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+  let timer = 0
+  const stop = () => {
+    clearTimeout(timer)
+    form.classList.remove('beckon')
+    input.placeholder = hint
+  }
+  form.classList.add('beckon')
+  if (!still) {
+    let shown = 0
+    let caret = true
+    const tick = () => {
+      if (shown < hint.length) {
+        shown++
+        input.placeholder = hint.slice(0, shown) + '|'
+        timer = window.setTimeout(tick, shown === 1 ? 500 : 45)
+      } else {
+        caret = !caret
+        input.placeholder = hint + (caret ? '|' : '')
+        timer = window.setTimeout(tick, 530)
+      }
+    }
+    input.placeholder = ''
+    timer = window.setTimeout(tick, 900)
+  }
+  input.addEventListener('focus', stop, { once: true })
+  form.addEventListener('submit', stop, { once: true })
+  return stop
+}
+
 // card faces are painted on canvas, so the font must be ready first
 await Promise.all(['500', '600', '700', '800', '900'].map((w) => document.fonts.load(`${w} 40px Outfit`))).catch(() => {})
-setStatus('Random Frog Cartel · live from chain')
+setStatus('Random Frog Cartel & NOOGIES')
 await stage.start()
 if (import.meta.env.DEV) Object.assign(window, { froge: stage })
 document.body.classList.add('ready')
 
 const addr = params.get('address')
+const quiet = addr || params.get('twetch') || params.get('ordinal')
+if (!quiet) beckon()
 if (addr) useAddress(addr, params.get('ordinal') ?? undefined)
 else if (params.get('twetch')) useTwetchName(params.get('twetch')!)
 
