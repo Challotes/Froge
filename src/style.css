@@ -121,6 +121,37 @@ main,
   letter-spacing: 0.04em;
 }
 
+/* "still being built" tag, tucked up after .fun */
+.alpha {
+  align-self: flex-start;
+  margin-left: 8px;
+  padding: 3px 7px 2px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 211, 107, 0.55);
+  background: rgba(255, 211, 107, 0.1);
+  color: var(--gold);
+  font: 700 9px/1 Outfit, system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  filter: none;
+}
+
+/* narrow phones: no room beside the logo, so it sits above ".fun" instead */
+@media (max-width: 420px) {
+  .brand {
+    position: relative;
+  }
+  .alpha {
+    position: absolute;
+    right: -4px;
+    top: -9px;
+    margin: 0;
+    padding: 2px 5px 1px;
+    font-size: 7.5px;
+    background: #1a1408;
+  }
+}
+
 .brand-col {
   display: flex;
   flex-direction: column;
