@@ -3,14 +3,14 @@
 // The frog is the original 2D render split into two layers (body behind,
 // left thumb in front). The card is a real 3D object posed so it lands exactly
 // where the card sits in the render. All measurements are in source-image
-// pixels; the pose was solved from the card's four corners (tools/fit.py).
+// pixels; the pose was solved offline from the card's four corners.
 
 import * as THREE from 'three'
 import { CARD_ASPECT, CORNER, loadBack, paintBack, paintFront, type Face } from './cardArt'
 import { twetchTraits, type CardItem } from './feed'
 import { CARD_GRIP, createWarpUniforms, HandRig, Spring, warpMaterial, type HandCue, type WarpUniforms } from './hand'
 
-// --- solved camera + card pose (tools/fit.py) --------------------------------
+// --- solved camera + card pose ----------------------------------------------
 const IMG_W = 1217
 const IMG_H = 1293
 const FOCAL = 1727.687 // px
@@ -29,7 +29,7 @@ const VIEW = { l: -150, r: IMG_W + 150, t: -40, b: 1420 }
 export const VIEW_ASPECT = (VIEW.r - VIEW.l) / (VIEW.b - VIEW.t)
 
 const BG_DEPTH = 3.2
-const THUMB_BOX = { x0: 360, y0: 480, x1: 590, y1: 630 } // tools/layers.py
+const THUMB_BOX = { x0: 360, y0: 480, x1: 590, y1: 630 } // the cut-out thumb layer, in image px
 
 // --- timing (seconds) ---------------------------------------------------------
 export const TIMING = { frontHold: 1.7, windup: 0.17, backHold: 0.22 }

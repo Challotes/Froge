@@ -198,7 +198,7 @@ function paintEdition(a: CanvasRenderingContext2D, f: CanvasRenderingContext2D, 
 
 /**
  * Paint the front. `edition` is this copy's number; until certificates exist
- * nothing has been forged, so every card's next edition is 001.
+ * nothing has been steelminted, so every card's next edition is 001.
  */
 export function paintFront(item: CardItem, img: HTMLImageElement | null, edition = 1): Face {
   const { art, foil, a, f } = canvasPair()
@@ -345,7 +345,7 @@ function isPale(a: CanvasRenderingContext2D, x: number, y: number, w: number, h:
   return light / (px.length / 4) > 140
 }
 
-const QR_MM = 11 // one step above the smallest size that scanned on every back (10 mm; see docs/plan.md)
+const QR_MM = 11 // one step above the smallest size that scanned on every back in testing (10 mm)
 
 /** Froge's mark at the bottom centre of the back: the site's wordmark, with the QR above it. */
 function paintFrogeMark(a: CanvasRenderingContext2D, f: CanvasRenderingContext2D, url: string) {

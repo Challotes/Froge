@@ -625,7 +625,7 @@ function toast(text: string) {
 
 const people = $('#people')
 let lookup = 0 // bumps per lookup so a slow old one can't overwrite a newer one
-/** The looked-up address plus addresses proven to share its wallet (checkout accepts payment from any). */
+/** The looked-up address plus addresses proven to share its wallet (checkout will accept payment from any). */
 let wallet: string[] = []
 
 /** `known`: linked addresses already found (e.g. from a Twetch username), skipping the search. */

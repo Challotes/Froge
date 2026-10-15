@@ -4,7 +4,7 @@
 Look up a wallet, watch the frog flip through its ordinals, and add the ones you
 own to your cart.
 
-Live at [frogeproof.fun](https://frogeproof.fun).
+Live at [frogeproof.fun](https://www.frogeproof.fun).
 
 ## What it does
 
@@ -12,7 +12,7 @@ Live at [frogeproof.fun](https://frogeproof.fun).
   location (`<txid>_<vout>`). Twetch accounts also pull in their linked ordinals
   addresses, so the whole collection shows up in one place.
 - **The frog flips your cards.** A 3D frog (three.js) holds each ordinal as a
-  card, front and back. With no wallet entered it shows random Frog Cartel frogs.
+  card, front and back. With no wallet entered it shows random Frog Cartel and NOOGIES cards.
 - **Cards in Twetch's design.** The 63 × 88 mm layout, rarity colours, traits
   and collection backs follow Twetch's own cards. Each steelmint adds a foil
   edition badge on the front and a STEELMINT QR + FROGE mark on the back.
@@ -72,7 +72,7 @@ Twetch.
 | `src/stage.ts` | The three.js scene: frog, card and flip animation |
 | `src/hand.ts` | Puppet-warp of the frog's hands around the card |
 | `src/cardArt.ts` | Paints card fronts and backs (badge, QR, wordmark) |
-| `src/feed.ts` | Finds ordinals for a wallet; random Frog Cartel cards |
+| `src/feed.ts` | Finds ordinals for a wallet; random Frog Cartel and NOOGIES cards |
 | `src/links.ts` | Twetch accounts and linked addresses |
 | `src/bfile.ts` | Fallback that reads B:// artwork straight from the transaction |
 | `src/cart.ts` | Cart and price ladder |
