@@ -76,3 +76,4 @@ Twetch.
 | `src/links.ts` | Twetch accounts and linked addresses |
 | `src/bfile.ts` | Fallback that reads B:// artwork straight from the transaction |
 | `src/cart.ts` | Cart and price ladder |
+| `src/thumbs.ts` | Gallery and cart thumbnails, shrunk to the size they are shown at |

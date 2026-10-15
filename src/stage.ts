@@ -183,16 +183,26 @@ function glowTexture(pad: number) {
     path()
     ctx.stroke()
   }
-  const tex = new THREE.CanvasTexture(c)
+  const tex = canvasTexture(c)
   tex.colorSpace = THREE.SRGBColorSpace
   return tex
 }
 
+/** A texture that empties its canvas once it's on the GPU, so the pixels aren't held twice. */
+function canvasTexture(c: HTMLCanvasElement) {
+  const tex = new THREE.CanvasTexture(c)
+  tex.onUpdate = () => {
+    c.width = c.height = 1
+    tex.onUpdate = null
+  }
+  return tex
+}
+
 function faceTextures(face: Face) {
-  const map = new THREE.CanvasTexture(face.art)
+  const map = canvasTexture(face.art)
   map.colorSpace = THREE.SRGBColorSpace
   map.anisotropy = 8
-  const foil = new THREE.CanvasTexture(face.foil)
+  const foil = canvasTexture(face.foil)
   return { map, foil }
 }
 type FaceTex = ReturnType<typeof faceTextures>

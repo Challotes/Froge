@@ -24,6 +24,12 @@ const P = ART / 2048 // panel px → canvas px
 const FONT = 'Helvetica, Arial, sans-serif'
 const MM = CW / 63 // canvas px per millimetre of the printed card
 
+// The layout above is in "card px", 1400 across. On screen the card is painted
+// smaller: four full-size canvases per card ran phones' in-app browsers out of
+// memory, and the card is never shown that big. Phones get 700 px, larger screens 1024.
+const PAINT_W = matchMedia('(pointer: coarse)').matches || Math.min(screen.width, screen.height) < 700 ? 700 : 1024
+const K = PAINT_W / CW
+
 export interface Face {
   art: HTMLCanvasElement
   foil: HTMLCanvasElement
@@ -63,7 +69,7 @@ export async function loadImage(url: string): Promise<HTMLImageElement> {
   }
 }
 
-function loadUrl(url: string): Promise<HTMLImageElement> {
+export function loadUrl(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
@@ -77,14 +83,16 @@ function loadUrl(url: string): Promise<HTMLImageElement> {
 function canvasPair() {
   const make = () => {
     const c = document.createElement('canvas')
-    c.width = CW
-    c.height = CH
+    c.width = Math.round(CW * K)
+    c.height = Math.round(CH * K)
     return c
   }
   const art = make()
   const foil = make()
   const a = art.getContext('2d')!
   const f = foil.getContext('2d')!
+  a.scale(K, K) // draw in card px
+  f.scale(K, K)
   f.fillStyle = '#000'
   f.fillRect(0, 0, CW, CH)
   return { art, foil, a, f }
@@ -330,7 +338,8 @@ function paintSteelQr(a: CanvasRenderingContext2D, f: CanvasRenderingContext2D, 
 
 /** Is the print under this area light? (Average luminance.) */
 function isPale(a: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-  const px = a.getImageData(x, y, w, h).data
+  const k = a.getTransform().a // card px → canvas px
+  const px = a.getImageData(x * k, y * k, Math.max(1, w * k), Math.max(1, h * k)).data
   let light = 0
   for (let i = 0; i < px.length; i += 4) light += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
   return light / (px.length / 4) > 140

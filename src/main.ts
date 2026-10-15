@@ -5,6 +5,7 @@ import { loadImage, RARITY_COLORS } from './cardArt'
 import { Cart, money, PRICE_TIERS, priceAt } from './cart'
 import { FrogStage } from './stage'
 import { setImageSrc } from './bfile'
+import { setThumbSrc } from './thumbs'
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T
 
@@ -180,9 +181,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 function thumb(item: CardItem) {
   const img = el('img', 'thumb')
   img.alt = ''
-  img.loading = 'lazy' // before src: otherwise every thumbnail starts downloading at once
   img.decoding = 'async'
-  setImageSrc(img, item.imageUrl)
+  setThumbSrc(img, item.imageUrl)
   return img
 }
 
