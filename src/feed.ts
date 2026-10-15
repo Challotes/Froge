@@ -181,10 +181,11 @@ const MAX_ORDINALS = 6000
 /**
  * Every image ordinal held by a wallet's addresses, any collection — what owners see.
  * `twetch`: the account's own NFT list, which fills gaps the indexer left.
+ * `onProgress` gets the cards found so far after each page, so they can be shown before the end.
  */
 export async function ordinalsOwnedBy(
   addresses: string[],
-  onProgress?: (found: number, stage?: 'sorting') => void,
+  onProgress?: (found: number, stage?: 'sorting', sofar?: CardItem[]) => void,
   twetch: TwetchToken[] = [],
 ): Promise<CardItem[]> {
   // inscriptions (1Sat) and sigil outputs (Twetch era); plain coins are skipped
@@ -211,7 +212,7 @@ export async function ordinalsOwnedBy(
           byKey.set(key, { ...item, locations: [txo.outpoint] })
         }
       }
-      onProgress?.(byKey.size)
+      onProgress?.(byKey.size, undefined, [...byKey.values()])
       if (txos.length < PAGE) break
     }
   }

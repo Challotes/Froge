@@ -24,8 +24,15 @@
       <div class="brand-line"><b>Steelmint</b> your ordinals</div>
       </div>
       <form id="address-form" class="lookup" autocomplete="off">
-        <input id="address" placeholder="Address, Twetch name or ordinal location" aria-label="Ordinals address" spellcheck="false" />
-        <button type="submit">Show ordinals</button>
+        <div class="search-box">
+          <input id="address" placeholder="Address, Twetch name or ordinal location" aria-label="Ordinals address" spellcheck="false" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false" />
+          <span id="ticker" class="ticker" aria-hidden="true" hidden></span>
+          <button type="submit" class="search-go" aria-label="Search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
+          </button>
+          <div id="suggest" class="suggest" role="listbox" aria-label="Twetch accounts" hidden></div>
+        </div>
+        <button id="browse" type="button" class="browse" aria-haspopup="dialog"><span class="browse-label">Your ordinals</span> <span id="browse-count" class="pill" hidden></span></button>
       </form>
       <button id="cart-btn" class="cart-btn" aria-label="Open cart" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.1 10.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6.2" /><circle cx="10" cy="20" r="1.4" /><circle cx="17" cy="20" r="1.4" /></svg>
@@ -57,12 +64,17 @@
         <a class="cook-hint" href="https://www.opencook.fun" target="_blank" rel="noopener"><span class="hint-long">See something wrong? </span>Got a better idea? <b>Become a contributor →</b></a>
       </div>
       <div class="controls">
-        <button id="browse" class="primary" aria-haspopup="dialog">Your ordinals <span id="browse-count" class="pill" hidden></span></button>
         <button id="pause" aria-pressed="false">Pause</button>
       </div>
     </footer>
 
     <div id="scrim" class="scrim" hidden></div>
+
+    <div class="turn" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.2" /><path d="M11 18.5h2" /></svg>
+      <p>Turn your phone upright</p>
+      <span>Froge only fits standing up</span>
+    </div>
 
     <aside id="collection" class="sheet" role="dialog" aria-modal="true" aria-labelledby="collection-title" hidden>
       <div class="sheet-head">

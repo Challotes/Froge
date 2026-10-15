@@ -31,6 +31,7 @@ const OFFLINE_CARD: CardItem = {
 
 let feed = new CardFeed()
 let owned: CardItem[] = []
+let mine = new Set<string>() // ids of the looked-up wallet's cards, including ones shown before the search finishes
 const cart = new Cart()
 
 // --- history ------------------------------------------------------------------
@@ -107,7 +108,7 @@ function renderAdd() {
 
 function showAdd() {
   // only for ordinals the visitor looked up: random cards can't be ordered
-  if (!showing || showing.id === 'offline' || !owned.includes(showing)) return
+  if (!showing || showing.id === 'offline' || !mine.has(showing.id)) return
   renderAdd()
   addBtn.hidden = false
   placeAdd()
@@ -481,20 +482,26 @@ function showGridMessage(text: string) {
 
 // --- searching indicators ---------------------------------------------------------
 // A lookup can take several seconds, so every stage of it shows that work is happening:
-// spinning search buttons, a pulsing status line and shimmering placeholder tiles.
-const lookupButtons = [...document.querySelectorAll<HTMLButtonElement>('.lookup button[type="submit"]')]
+// "Your ordinals" counts up as they're found, the status line pulses and the panel
+// shimmers with placeholder tiles.
+const browseBtn = $<HTMLButtonElement>('#browse')
+const sheetGo = $<HTMLButtonElement>('#sheet-lookup button[type="submit"]')
 
-function setBusy(on: boolean) {
+/** `progress`: the short version for the "Your ordinals" button. */
+function setBusy(on: boolean, progress = 'Searching…') {
   document.body.classList.toggle('searching', on)
-  for (const b of lookupButtons) {
-    b.classList.toggle('busy', on)
-    b.textContent = on ? 'Searching…' : 'Show ordinals'
-  }
+  sheetGo.classList.toggle('busy', on)
+  sheetGo.textContent = on ? 'Searching…' : 'Show ordinals'
+  browseBtn.classList.toggle('busy', on)
+  $('#browse .browse-label').textContent = on ? progress : 'Your ordinals'
+  $('#browse-count').hidden = on || !owned.length
+  if (on) startTicker()
+  else stopTicker()
 }
 
 /** Loading state in the panel: a spinner line plus placeholder tiles. */
-function showLoading(text: string) {
-  setBusy(true)
+function showLoading(text: string, progress?: string) {
+  setBusy(true, progress)
   setStatus(text)
   gridMsg.classList.add('loading')
   gridMsg.textContent = text
@@ -508,9 +515,10 @@ function showLoading(text: string) {
   }
 }
 
-/** Reset the ordinals panel for a new search and open it with a loading state. */
+/** Reset the ordinals panel for a new search, in a loading state. It stays closed so Froge can be watched. */
 function openSearch(text: string, sub = '') {
   owned = []
+  mine = new Set()
   tiles.clear()
   grid.replaceChildren()
   people.hidden = true
@@ -520,14 +528,14 @@ function openSearch(text: string, sub = '') {
   $('#collection-title').textContent = 'Your ordinals'
   $('#collection-sub').textContent = sub
   showLoading(text)
-  if (!$('#collection').classList.contains('open')) openSheet('#collection')
 }
 
-/** A search failed: say so in the panel and offer the search box again. */
+/** A search failed: say so in the panel, opened, and offer the search box again. */
 function searchFailed(status: string, message: string) {
   setStatus(status)
   showGridMessage(message)
   $('#sheet-lookup').hidden = false
+  if (!$('#collection').classList.contains('open')) openSheet('#collection')
 }
 
 // background work after the gallery is showing ("still checking…" under the subtitle)
@@ -614,6 +622,7 @@ function toast(text: string) {
 }
 
 // --- address lookup -----------------------------------------------------------------
+
 const people = $('#people')
 let lookup = 0 // bumps per lookup so a slow old one can't overwrite a newer one
 /** The looked-up address plus addresses proven to share its wallet (checkout accepts payment from any). */
@@ -636,12 +645,24 @@ async function useAddress(address: string, focus?: string, known?: TwetchWallet)
     wallet = [address, ...linked]
     if (linked.length) $('#collection-sub').textContent = `${address} + ${linked.length} linked`
     showLoading(twetch?.account ? `Finding ${twetch.account.name}’s ordinals…` : 'Finding your ordinals…')
+    let early = false // their cards are already flipping
     const found = await ordinalsOwnedBy(
       wallet,
-      (n, stage) => {
+      (n, stage, sofar) => {
         if (id !== lookup) return
-        if (stage === 'sorting') showLoading(`Sorting your ${n.toLocaleString()} ordinals…`)
-        else if (n) showLoading(`Finding your ordinals… ${n.toLocaleString()} so far`)
+        if (stage === 'sorting') {
+          tickFound = `Sorting your ${n.toLocaleString()}…`
+          return showLoading(`Sorting your ${n.toLocaleString()} ordinals…`, `Sorting ${n.toLocaleString()}…`)
+        }
+        if (!n) return
+        tickFound = `Found ${n.toLocaleString()} so far. Ribbit.`
+        showLoading(`Finding your ordinals… ${n.toLocaleString()} so far`, `Found ${n.toLocaleString()}…`)
+        // flip through what's here already rather than wait for the whole wallet (unless one card was asked for)
+        if (!sofar || focus) return
+        for (const i of sofar) mine.add(i.id)
+        feed = new CardFeed(sofar)
+        if (!early) present(sofar[Math.floor(Math.random() * sofar.length)])
+        early = true
       },
       twetch?.tokens,
     )
@@ -665,6 +686,7 @@ async function useAddress(address: string, focus?: string, known?: TwetchWallet)
       return showLoading('Nothing here yet · checking linked addresses…')
     }
     owned = found
+    mine = new Set(found.map((i) => i.id))
     activeCollection = null
     filterInput.value = ''
     filterInput.hidden = false
@@ -675,6 +697,12 @@ async function useAddress(address: string, focus?: string, known?: TwetchWallet)
     if (wanted) {
       pickCollection(groupOf(wanted), wanted)
       rendered.then(() => tiles.get(wanted.id)?.scrollIntoView({ block: 'center' }))
+    } else if (early) {
+      // already flipping their cards: carry on with all of them, without a jump
+      activeCollection = null
+      feed = new CardFeed(found)
+      setStatus(`Your ordinals · ${found.length.toLocaleString()}`)
+      applyFilter()
     } else {
       pickCollection(null) // everything, until they pick a collection
     }
@@ -716,6 +744,7 @@ async function addCosignedOrdinals(id: number, address: string) {
   if (!fresh.length) return
   const first = !owned.length
   owned = [...owned, ...fresh]
+  for (const i of fresh) mine.add(i.id)
   filterInput.hidden = false
   $('#sheet-lookup').hidden = true
   $('#browse-count').hidden = false
@@ -760,7 +789,12 @@ async function useTwetchName(name: string) {
     if (exact.length === 1) return useTwetchAccount(exact[0])
     if (!exact.length && !close.length)
       return searchFailed('No Twetch user by that name', 'Couldn’t find that Twetch user. Paste an address or ordinal location instead.')
-    showPeople(name, exact.length ? exact : close, !exact.length)
+    const accounts = exact.length ? exact : close
+    // searched from the panel: pick there; otherwise in a list under the search box
+    if ($('#collection').classList.contains('open')) return showPeople(name, accounts, !exact.length)
+    showGridMessage('')
+    setStatus('Pick your Twetch account')
+    showSuggest(accounts, exact.length ? `${exact.length} Twetch users are called “${name}”` : `No Twetch user is called “${name}” exactly. Did you mean…`)
   } catch {
     if (id === lookup) searchFailed('Couldn’t reach Twetch', 'Couldn’t reach Twetch. Try again, or paste an address instead.')
   }
@@ -783,6 +817,7 @@ async function useTwetchAccount(account: TwetchAccount) {
 /** "Which one are you?" list for a name several Twetch accounts share. */
 function showPeople(name: string, accounts: TwetchAccount[], near: boolean) {
   owned = []
+  mine = new Set()
   tiles.clear()
   grid.replaceChildren()
   chips.hidden = true
@@ -793,13 +828,13 @@ function showPeople(name: string, accounts: TwetchAccount[], near: boolean) {
     ? `No Twetch user is called “${name}” exactly`
     : `${accounts.length} Twetch users are called “${name}”`
   showGridMessage('')
-  people.replaceChildren(...accounts.map(personRow))
+  people.replaceChildren(...accounts.map((a) => personRow(a)))
   people.hidden = false
   setStatus('Pick your Twetch account')
   openSheet('#collection')
 }
 
-function personRow(a: TwetchAccount) {
+function personRow(a: TwetchAccount, pick: (a: TwetchAccount) => unknown = useTwetchAccount) {
   const row = document.createElement('button')
   row.className = 'person'
   const text = document.createElement('span')
@@ -810,9 +845,148 @@ function personRow(a: TwetchAccount) {
   meta.textContent = `@${a.id} · ${a.followers.toLocaleString()} follower${a.followers === 1 ? '' : 's'}`
   text.append(strong, meta)
   row.append(avatar(a), text)
-  row.addEventListener('click', () => useTwetchAccount(a))
+  row.addEventListener('click', () => pick(a))
   return row
 }
+
+// --- Twetch accounts suggested as a name is typed --------------------------------------
+const addressInput = $<HTMLInputElement>('#address')
+const suggest = $('#suggest')
+let suggestGen = 0 // bumps per keystroke so a slow old answer can't replace a newer one
+let suggestTimer = 0
+
+const looksLikeName = (v: string) => v.length >= 2 && !isAddress(v) && !parseOutpoint(v) && !/^[0-9a-f]{16,}/i.test(v)
+
+function closeSuggest() {
+  suggestGen++
+  clearTimeout(suggestTimer)
+  suggest.hidden = true
+  suggest.replaceChildren()
+  addressInput.setAttribute('aria-expanded', 'false')
+  addressInput.removeAttribute('aria-activedescendant')
+}
+
+function showSuggest(accounts: TwetchAccount[], note?: string) {
+  const rows = accounts.slice(0, 8).map((a, i) => {
+    const row = personRow(a, (a) => {
+      closeSuggest()
+      addressInput.value = a.name
+      addressInput.blur()
+      useTwetchAccount(a)
+    })
+    row.id = `suggest-${i}`
+    row.type = 'button'
+    row.tabIndex = -1
+    row.setAttribute('role', 'option')
+    row.addEventListener('pointerdown', (e) => e.preventDefault()) // keep the box focused so the list stays until the tap lands
+    return row
+  })
+  suggest.replaceChildren(...(note ? [el('p', 'suggest-note', note)] : []), ...rows)
+  suggest.hidden = false
+  addressInput.setAttribute('aria-expanded', 'true')
+}
+
+/** Move the highlighted suggestion with the arrow keys. */
+function stepSuggest(by: number) {
+  const rows = [...suggest.querySelectorAll<HTMLElement>('.person')]
+  if (suggest.hidden || !rows.length) return false
+  const at = rows.findIndex((r) => r.getAttribute('aria-selected') === 'true')
+  const next = at < 0 ? (by > 0 ? 0 : rows.length - 1) : (at + by + rows.length) % rows.length
+  rows.forEach((r, i) => r.setAttribute('aria-selected', String(i === next)))
+  rows[next].scrollIntoView({ block: 'nearest' })
+  addressInput.setAttribute('aria-activedescendant', rows[next].id)
+  return true
+}
+
+addressInput.addEventListener('input', () => {
+  const v = addressInput.value.trim()
+  if (!looksLikeName(v)) return closeSuggest()
+  const gen = ++suggestGen
+  clearTimeout(suggestTimer)
+  suggestTimer = window.setTimeout(async () => {
+    const found = await twetchAccounts(v).catch(() => null)
+    if (gen !== suggestGen || !found) return
+    const list = [...found.exact, ...found.close]
+    if (list.length) showSuggest(list)
+    else showSuggest([], `No Twetch user called “${v}”`)
+  }, 300)
+})
+
+addressInput.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown' && stepSuggest(1)) e.preventDefault()
+  else if (e.key === 'ArrowUp' && stepSuggest(-1)) e.preventDefault()
+  else if (e.key === 'Escape' && !suggest.hidden) {
+    e.stopPropagation()
+    closeSuggest()
+  } else if (e.key === 'Enter') {
+    const picked = suggest.querySelector<HTMLElement>('.person[aria-selected="true"]')
+    if (picked) {
+      e.preventDefault()
+      picked.click()
+    }
+  }
+})
+addressInput.addEventListener('blur', closeSuggest)
+// --- while searching, the search box keeps them company -----------------------------------
+// Froge at work alternates with what's worth knowing about steelmints. Once ordinals
+// are arriving, the real count replaces the jokes.
+const TICK_PROGRESS = [
+  'Searching the chain…',
+  'Froge is hopping through blocks…',
+  'Sniffing out your ordinals…',
+  'Rummaging through your wallet…',
+  'Tongue out, catching ordinals…',
+  'Big wallet! Still hopping…',
+]
+const TICK_FACTS = [
+  'Owners only. No lily-pad lurkers.',
+  'You can only cart what you own',
+  'Every steelmint is verifiable',
+  'Scan the back: proof it’s real',
+  'Comes with a Froge certificate',
+  'First steelmint of a card: Nº 001',
+  'Get in first, claim Nº 001',
+]
+const searchBox = $('#address-form .search-box')
+const ticker = $('#ticker')
+let tickTimer = 0
+let tickN = 0
+let tickFound = '' // e.g. "Found 300 so far. Ribbit."
+
+function nextTick() {
+  const i = tickN++
+  const fact = i % 2 === 1
+  ticker.textContent = fact ? TICK_FACTS[(i >> 1) % TICK_FACTS.length] : tickFound || TICK_PROGRESS[(i >> 1) % TICK_PROGRESS.length]
+  ticker.classList.toggle('fact', fact)
+  ticker.classList.remove('in')
+  void ticker.offsetWidth // restart the slide-in
+  ticker.classList.add('in')
+}
+
+function startTicker() {
+  // already running, or they're typing in the box
+  if (tickTimer || document.activeElement === addressInput) return
+  tickN = 0
+  tickFound = ''
+  searchBox.classList.add('ticking')
+  ticker.hidden = false
+  nextTick()
+  tickTimer = window.setInterval(nextTick, 3000)
+}
+
+function stopTicker() {
+  clearInterval(tickTimer)
+  tickTimer = 0
+  searchBox.classList.remove('ticking')
+  ticker.hidden = true
+}
+
+addressInput.addEventListener('focus', stopTicker) // tapping the box brings their text back to edit
+
+// a list shown after pressing search isn't tied to the box being focused: any tap elsewhere closes it
+document.addEventListener('pointerdown', (e) => {
+  if (!suggest.hidden && !(e.target as HTMLElement).closest('.search-box')) closeSuggest()
+})
 
 /** Round profile picture, with the name's initial underneath until (or unless) it loads. */
 function avatar(a: TwetchAccount) {
@@ -942,6 +1116,8 @@ window.addEventListener('keydown', (e) => {
 })
 $<HTMLFormElement>('#address-form').addEventListener('submit', (e) => {
   e.preventDefault()
+  closeSuggest()
+  addressInput.blur() // puts the phone keyboard away so Froge can be seen, and lets the search box talk
   submitAddress('#address')
 })
 $<HTMLFormElement>('#sheet-lookup').addEventListener('submit', (e) => {
