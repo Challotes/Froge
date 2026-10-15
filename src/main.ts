@@ -941,6 +941,7 @@ const TICK_PROGRESS = [
 const TICK_FACTS = [
   'Owners only. No lily-pad lurkers.',
   'You can only cart what you own',
+  'Pay from the wallet that owns it',
   'Every steelmint is verifiable',
   'Scan the back: proof it’s real',
   'Comes with a Froge certificate',
