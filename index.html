@@ -38,7 +38,12 @@
         <span class="brand-tag" aria-hidden="true"><span class="brand-proof">Proof</span><span class="brand-fun">.fun</span></span>
         <span class="alpha" aria-hidden="true" title="Froge is still being built: checkout isn’t open yet">Alpha</span>
       </div>
-      <div class="brand-line"><b>Steelmint</b> your ordinals</div>
+      <!-- the tagline doubles as the tabs; Market and Mint aren't built, they open the "come cook it" card -->
+      <nav class="brand-line" aria-label="Froge sections">
+        <span class="tab on" aria-current="page">Steelmint</span><span class="sep" aria-hidden="true">·</span>
+        <button type="button" class="tab" data-cook="Market" aria-haspopup="dialog">Market<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16M6 10v7a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-7M10 7.5a2 1.2 0 0 1 4 0" /></svg></button><span class="sep" aria-hidden="true">·</span>
+        <button type="button" class="tab" data-cook="Mint" aria-haspopup="dialog">Mint<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16M6 10v7a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-7M10 7.5a2 1.2 0 0 1 4 0" /></svg></button>
+      </nav>
       </div>
       <form id="address-form" class="lookup" autocomplete="off">
         <div class="search-box">
@@ -78,7 +83,7 @@
         <div id="status" class="status">Waking the frog…</div>
         <div id="card-title" class="card-title">&nbsp;</div>
         <div id="card-meta" class="card-meta">&nbsp;</div>
-        <a class="cook-hint" href="https://www.opencook.fun" target="_blank" rel="noopener"><span class="hint-long">See something wrong? </span>Got a better idea? <b>Become a contributor →</b></a>
+        <a class="cook-hint" href="https://www.opencook.fun" target="_blank" rel="noopener"><svg class="cook-pot" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16M6 10v7a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-7M10 7.5a2 1.2 0 0 1 4 0" /></svg><span><span class="hint-long">See something wrong? Got a better idea? </span><span class="hint-short">Better idea? </span><b>Cook it on <span class="ocw"><span>Open</span>Cook</span> →</b></span></a>
       </div>
       <div class="controls">
         <a class="gh" href="https://github.com/Challotes/Froge" target="_blank" rel="noopener" aria-label="Froge on GitHub" title="Froge on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></svg></a>
@@ -135,9 +140,19 @@
         <div class="row save" id="save-row" hidden><span>Bulk saving</span><b id="savings"></b></div>
         <button id="checkout" class="primary checkout" disabled>Checkout</button>
         <p class="pay-note">You’ll pay from the wallet holding these ordinals. That’s how we know they’re yours.</p>
-        <a class="cook-card" href="https://www.opencook.fun" target="_blank" rel="noopener"><strong>Become part of Froge</strong><small>Help decide how checkout works on <span class="ocw"><span>Open</span>Cook</span></small></a>
+        <a class="cook-card" href="https://www.opencook.fun" target="_blank" rel="noopener"><span class="cook-card-who"><span>Checkout is open for cooking on</span><span class="ocw"><span>Open</span>Cook</span><small>no boomers</small></span><span class="cook-card-go">Cook it <span aria-hidden="true">→</span></span></a>
       </div>
     </aside>
+
+    <dialog id="cooking" class="cooking" aria-labelledby="cooking-title">
+      <button type="button" class="cooking-x" aria-label="Close">×</button>
+      <svg class="pot" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 28h44M14 28v18a8 8 0 0 0 8 8h20a8 8 0 0 0 8-8V28M8 34h6M50 34h6" /><path d="M26 24a6 3 0 0 1 12 0" /></svg>
+      <p class="cooking-eyebrow"><span id="cooking-what">Market</span> · Open for cooking</p>
+      <h2 id="cooking-title">Come cook something new and fun</h2>
+      <p class="cooking-text">There’s no Froge <span id="cooking-name">Market</span> yet. Whether there ever is, and how it works, is up to the contributors on <span class="ocw"><span>Open</span>Cook</span>.</p>
+      <a id="cooking-go" class="cooking-go" href="https://www.opencook.fun" target="_blank" rel="noopener">Cook the Market <span aria-hidden="true">→</span></a>
+      <p class="cooking-sign"><span class="ocw"><span>Open</span>Cook</span><small>no boomers</small></p>
+    </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

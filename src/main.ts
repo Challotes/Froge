@@ -598,6 +598,26 @@ function closeSheets(restore = true) {
   if (restore) lastFocus?.focus()
 }
 
+// Market and Mint aren't built: each opens a card inviting people to cook it on OpenCook
+const cooking = $<HTMLDialogElement>('#cooking')
+for (const tab of document.querySelectorAll<HTMLElement>('[data-cook]')) {
+  tab.addEventListener('click', () => {
+    const what = tab.dataset.cook!
+    $('#cooking-what').textContent = what
+    $('#cooking-name').textContent = what
+    $('#cooking-go').firstChild!.textContent = what === 'Market' ? 'Cook the Market ' : `Cook ${what} `
+    cooking.showModal()
+  })
+}
+cooking.querySelector('.cooking-x')!.addEventListener('click', () => cooking.close())
+// a tap on the dimmed page around the card closes it
+cooking.addEventListener('click', (e) => {
+  if (e.target === cooking) {
+    const r = cooking.getBoundingClientRect()
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) cooking.close()
+  }
+})
+
 scrim.addEventListener('click', () => closeSheets())
 for (const b of document.querySelectorAll('[data-close]')) b.addEventListener('click', () => closeSheets())
 $('#cart-btn').addEventListener('click', () => openSheet('#cart'))
@@ -1106,7 +1126,7 @@ pauseBtn.addEventListener('click', () => {
 })
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeSheets()
-  if ((e.target as HTMLElement).tagName === 'INPUT' || document.querySelector('.sheet.open')) return
+  if ((e.target as HTMLElement).tagName === 'INPUT' || document.querySelector('.sheet.open') || cooking.open) return
   if (e.key === 'ArrowRight' || e.key === ' ') {
     e.preventDefault()
     fwdBtn.click()
