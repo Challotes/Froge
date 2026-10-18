@@ -1,7 +1,8 @@
 import './style.css'
-import { CardFeed, FROG_CARTEL, fillTraits, ordinalAt, ordinalsOwnedBy, parseOutpoint, type CardItem } from './feed'
+import { CardFeed, FROG_CARTEL, ServerError, fillTraits, ordinalAt, ordinalsOwnedBy, parseOutpoint, type CardItem } from './feed'
 import { cosignedAddresses, twetchAccounts, twetchLinked, twetchWallet, twetchIcon, type TwetchAccount, type TwetchWallet } from './links'
 import { loadImage, RARITY_COLORS } from './cardArt'
+import { layoutOf, pickLayout } from './fullArt'
 import { Cart, money, PRICE_TIERS, priceAt } from './cart'
 import { FrogStage } from './stage'
 import { setImageSrc } from './bfile'
@@ -13,6 +14,7 @@ const params = new URLSearchParams(location.search)
 const status = $('#status')
 const title = $('#card-title')
 const meta = $('#card-meta')
+const layoutBox = $('#layout')
 const pauseBtn = $<HTMLButtonElement>('#pause')
 const addBtn = $<HTMLButtonElement>('#add')
 const prevBtn = $<HTMLButtonElement>('#prev')
@@ -81,10 +83,26 @@ function onReveal(item: CardItem) {
   title.textContent = item.title
   const bits = [item.rarity, item.rank ? `Rank ${item.rank}` : null].filter(Boolean)
   meta.textContent = bits.join(' · ')
+  showLayout(item)
   prevBtn.disabled = shown <= 0
   markGallery()
   showAdd()
 }
+
+// --- Classic / Full art switch, for art close to the card's shape (fullArt.ts) ---
+function showLayout(item: CardItem) {
+  const { layout, choosable } = layoutOf(item, stage.currentArt)
+  layoutBox.hidden = !choosable
+  for (const b of layoutBox.querySelectorAll<HTMLButtonElement>('button')) b.setAttribute('aria-pressed', String(b.dataset.layout === layout))
+}
+
+layoutBox.addEventListener('click', (e) => {
+  const pick = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-layout]')?.dataset.layout
+  if (!showing || (pick !== 'classic' && pick !== 'full') || pick === layoutOf(showing, stage.currentArt).layout) return
+  pickLayout(showing, pick)
+  stage.redrawFront()
+  showLayout(showing)
+})
 
 // --- add to cart (only while a face is showing) --------------------------------
 function placeAdd() {
@@ -729,10 +747,16 @@ async function useAddress(address: string, focus?: string, known?: TwetchWallet)
   } catch (e) {
     console.warn('[froge] address lookup failed', e)
     if (id !== lookup) return
-    searchFailed(
-      'The ordinals server didn’t answer · showing random cards',
-      'The ordinals server didn’t answer. If that’s the right address, press Show ordinals to try again.',
-    )
+    if (e instanceof ServerError)
+      searchFailed(
+        'The ordinals server didn’t answer · showing random cards',
+        'The ordinals server didn’t answer. If that’s the right address, press Show ordinals to try again.',
+      )
+    else
+      searchFailed(
+        'Froge couldn’t read this wallet · showing random cards',
+        'Froge tripped over something in this wallet. Press Show ordinals to try again, and if it keeps happening, tell us on OpenCook.',
+      )
   }
 }
 

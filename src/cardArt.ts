@@ -13,16 +13,17 @@ import { bFileUrl, bTxid } from './bfile'
 
 export const CARD_ASPECT = 2.006 / 2.8 // width / height (63 × 88 mm)
 export const CORNER = 0.0534 // outer corner radius, as a fraction of card width
-const CW = 1400
-const CH = Math.round(CW / CARD_ASPECT)
-const M = CW * 0.0363 // margin around and between the art and the panel
+// card geometry, also used by the full-art layout (fullArt.ts)
+export const CW = 1400
+export const CH = Math.round(CW / CARD_ASPECT)
+export const M = CW * 0.0363 // margin around and between the art and the panel
 const ART = CW - M * 2 // square artwork
-const R = CW * 0.0499 // corner radius of the art, panel and back
+export const R = CW * 0.0499 // corner radius of the art, panel and back
 const PANEL_Y = M + ART + M
 const PANEL_H = CH - PANEL_Y - M
 const P = ART / 2048 // panel px → canvas px
-const FONT = 'Helvetica, Arial, sans-serif'
-const MM = CW / 63 // canvas px per millimetre of the printed card
+export const FONT = 'Helvetica, Arial, sans-serif'
+export const MM = CW / 63 // canvas px per millimetre of the printed card
 
 // The layout above is in "card px", 1400 across. On screen the card is painted
 // smaller: four full-size canvases per card ran phones' in-app browsers out of
@@ -44,6 +45,9 @@ export const RARITY_COLORS: Record<string, string> = {
   exotic: '#ff5ad1',
   legendary: '#ffc23d',
   mythic: '#ff4d6d',
+  mythical: '#ff4d6d',
+  'super rare': '#b46bff',
+  'ultra rare': '#ffc23d',
 }
 
 /** Card border (top → bottom) and pill text colours per rarity, as on Twetch's cards. */
@@ -55,7 +59,17 @@ const CARD_RARITY: Record<string, { border: string[]; pill: string[] }> = {
   exotic: { border: ['#9aa4ff', '#9bb9ff', '#a3eeff', '#bcc1ff', '#cf8cff'], pill: ['#8c8cf0', '#a3f0ff'] },
   legendary: { border: ['#ffd361', '#ffce4e', '#fac334', '#daa213', '#b78404'], pill: ['#fabe23'] },
 }
-const cardRarity = (rarity?: string) => CARD_RARITY[(rarity ?? '').toLowerCase()] ?? CARD_RARITY.common
+/** Rarity words other apps use, as the nearest of the six card colours. */
+const RARITY_ALIAS: Record<string, string> = {
+  mythical: 'exotic',
+  mythic: 'exotic',
+  'super rare': 'epic',
+  'ultra rare': 'legendary',
+}
+export const cardRarity = (rarity?: string) => {
+  const k = (rarity ?? '').trim().toLowerCase()
+  return CARD_RARITY[RARITY_ALIAS[k] ?? k] ?? CARD_RARITY.common
+}
 
 /** Load artwork; files ORDFS can't serve are read straight from the chain. */
 export async function loadImage(url: string): Promise<HTMLImageElement> {
@@ -80,7 +94,7 @@ export function loadUrl(url: string): Promise<HTMLImageElement> {
   })
 }
 
-function canvasPair() {
+export function canvasPair() {
   const make = () => {
     const c = document.createElement('canvas')
     c.width = Math.round(CW * K)
@@ -98,13 +112,13 @@ function canvasPair() {
   return { art, foil, a, f }
 }
 
-function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
   ctx.roundRect(x, y, w, h, r)
 }
 
 /** Coloured metal border shared by both faces; all of it is foil. */
-function paintBorder(a: CanvasRenderingContext2D, f: CanvasRenderingContext2D, stops: string[]) {
+export function paintBorder(a: CanvasRenderingContext2D, f: CanvasRenderingContext2D, stops: string[]) {
   const g = a.createLinearGradient(0, 0, CW * 0.25, CH)
   stops.forEach((s, i) => g.addColorStop(i / (stops.length - 1), s))
   rounded(a, 0, 0, CW, CH, CW * CORNER)

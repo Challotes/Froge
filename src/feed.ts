@@ -44,16 +44,42 @@ export interface CardItem {
   locations?: string[]
   /** where Twetch lists it, for reading its traits the way Twetch shows them */
   twetch?: { collection: string; number: number }
+  /** the owner's pick of front layout (fullArt.ts); unset = the default for its art */
+  layout?: 'classic' | 'full'
 }
 
 const collectionQuery = () =>
   btoa(JSON.stringify({ map: { subTypeData: { collectionId: FROG_CARTEL.collectionId } } }))
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/** Metadata fields that some collections store as JSON text instead of JSON. */
+function parsed(v: any): any {
+  if (typeof v !== 'string') return v
+  try {
+    return JSON.parse(v)
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * One indexer record as a card, or null if it isn't an image ordinal Froge can show.
+ * One ordinal with unexpected metadata is skipped, never the whole wallet.
+ * (Exported for scripts/check-wallets.mjs.)
+ */
+export function toCard(txo: any): CardItem | null {
+  try {
+    return readCard(txo)
+  } catch (e) {
+    console.warn('[froge] skipped an ordinal it could not read', txo?.outpoint, e)
+    return null
+  }
+}
+
 // Two record shapes come back from the indexer:
 //  - 1Sat ordinals: metadata lives on the origin inscription (origin.data.map)
 //  - Twetch-era ordinals: no origin, the metadata is on the output itself (data.sigil)
-function toCard(txo: any): CardItem | null {
+function readCard(txo: any): CardItem | null {
   const origin = txo?.origin
   const map = origin?.data?.map ?? {}
   let sigil: any = txo?.data?.sigil ?? {}
@@ -64,13 +90,14 @@ function toCard(txo: any): CardItem | null {
       /* sigil is optional */
     }
   }
-  if (!origin?.data?.map && !txo?.data?.sigil?.title) return null // unnamed sigil outputs have no usable image
+  const fileType: string | undefined = origin?.data?.insc?.file?.type
+  // unnamed sigil outputs have no usable image; a bare image inscription (no metadata) still shows
+  if (!origin?.data?.map && !txo?.data?.sigil?.title && !fileType?.startsWith('image/')) return null
   // Frog Cartel inscriptions are tiny HTML wrappers around a B:// PNG;
   // pull the real image out so it can become a WebGL texture.
   const bTx =
     (typeof sigil.image === 'string' && sigil.image.replace('b://', '').replace(/@\d+$/, '')) ||
     origin?.data?.insc?.text?.match(/\/content\/([0-9a-f]{64})/)?.[1]
-  const fileType: string | undefined = origin?.data?.insc?.file?.type
   const imageUrl = bTx
     ? `${ORDFS}/${bTx}`
     : fileType?.startsWith('image/')
@@ -78,13 +105,26 @@ function toCard(txo: any): CardItem | null {
       : null
   if (!imageUrl) return null
 
+  const mapTraits = parsed(map.subTypeData?.traits)
   const traits: Trait[] = Array.isArray(sigil.attributes)
     ? sigil.attributes.map((a: any) => ({ name: a.trait_type ?? a.trait ?? a.name, value: a.value, rarity: a.rarity }))
-    : (map.subTypeData?.traits ?? []).map((t: any) => ({ name: t.name, value: t.value, rarity: t.rarityLabel }))
+    : Array.isArray(mapTraits)
+      ? mapTraits.map((t: any) => ({ name: t.name, value: t.value, rarity: t.rarityLabel }))
+      : []
+  // a rank is a number; some collections put their rarity word there instead ("Legendary")
+  const rawRank = sigil.rank ?? map.subTypeData?.rank ?? map.rank
+  const rank = Number(rawRank) > 0 ? Number(rawRank) : undefined
+  const rarityWord = typeof rawRank === 'string' && !rank ? rawRank : undefined
+  // 1Sat apps keep the rarity word in rarityLabel
+  const rarityLabel = [map.subTypeData?.rarityLabel, map.rarity, rarityWord].find((v) => typeof v === 'string' && v.trim())
 
-  const title: string = map.name ?? sigil.title ?? 'Untitled'
+  // the name, wherever the minting app put it (RareDropper: subTypeData.name; Tale of Shua: only a collection)
+  const text = (v: any) => (typeof v === 'string' && v.trim()) || undefined
+  const title: string =
+    text(map.name) ?? text(map.subTypeData?.name) ?? sigil.title ?? text(map.collection) ?? 'Untitled'
   const num = sigil.number ?? Number(title.match(/#(\d+)\s*$/)?.[1] ?? NaN)
-  return {
+  const mint = Number(map.subTypeData?.mintNumber)
+  const item: CardItem = {
     id: origin?.outpoint ?? txo.outpoint,
     title,
     number: Number.isFinite(num) ? num : undefined,
@@ -92,14 +132,27 @@ function toCard(txo: any): CardItem | null {
     collection: title.replace(/\s*#\d+\s*$/, '') || 'Ordinals',
     collectionId: map.subTypeData?.collectionId,
     imageUrl,
-    rarity: sigil.rarity,
-    rank: sigil.rank ?? map.subTypeData?.rank,
+    rarity: sigil.rarity ?? niceRarity(rarityLabel),
+    rank,
     series: sigil.series,
     traits,
     owner: txo.owner,
   }
+  // named after its collection once that's looked up ("Graffiti by Seto #8")
+  if (title === 'Untitled' && item.collectionId && mint >= 0) unnamed.set(item, mint)
+  return item
 }
+
+/** "UNCOMMON" → "Uncommon", "super rare" → "Super Rare" */
+const niceRarity = (word?: string) =>
+  word?.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+
+/** Unnamed collection items and their mint number */
+const unnamed = new WeakMap<CardItem, number>()
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** The ordinals server failed or didn't answer (as opposed to Froge failing to read what it sent). */
+export class ServerError extends Error {}
 
 /**
  * The indexer sometimes leaves a request hanging for ~50 s and then drops it,
@@ -112,10 +165,10 @@ async function getJson(url: string, tries = 3) {
     try {
       res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
     } catch (e) {
-      if (attempt >= tries) throw e
+      if (attempt >= tries) throw new ServerError(String(e))
     }
     if (res?.ok) return res.json()
-    if (res && (res.status < 500 || attempt >= tries)) throw new Error(`${res.status} ${url}`)
+    if (res && (res.status < 500 || attempt >= tries)) throw new ServerError(`${res.status} ${url}`)
     await new Promise((r) => setTimeout(r, 800 * attempt))
   }
 }
@@ -381,33 +434,44 @@ const TIERS: [number, string][] = [
   [Infinity, 'Common'],
 ]
 
-const sizes = new Map<string, Promise<number | undefined>>()
+const collections = new Map<string, Promise<{ size?: number; name?: string }>>()
 
-/** Number of items in a 1Sat collection, from the collection's own record. */
-function collectionSize(collectionId: string) {
-  let p = sizes.get(collectionId)
+/** Size and name of a 1Sat collection, from the collection's own record. */
+function collectionInfo(collectionId: string) {
+  let p = collections.get(collectionId)
   if (!p) {
     p = getJson(`${API}/txos/${collectionId}?script=false`)
       .then((t) => {
-        const q = Number((t?.origin?.data?.map ?? t?.data?.map)?.subTypeData?.quantity)
-        return q > 0 ? q : undefined
+        const map = t?.origin?.data?.map ?? t?.data?.map
+        const q = Number(map?.subTypeData?.quantity)
+        return { size: q > 0 ? q : undefined, name: typeof map?.name === 'string' ? map.name.trim() || undefined : undefined }
       })
-      .catch(() => undefined)
-    sizes.set(collectionId, p)
+      .catch(() => ({}))
+    collections.set(collectionId, p)
   }
   return p
 }
 
 /**
- * Fill in the collection size (shown as "rank / size") and, where a collection
- * only publishes ranks, the rarity tier that rank falls in.
+ * Fill in the collection size (shown as "rank / size"), where a collection
+ * only publishes ranks the rarity tier that rank falls in, and a name for
+ * unnamed collection items.
  */
 async function fillRarity(items: CardItem[]) {
-  const ids = [...new Set(items.filter((i) => i.rank && i.collectionId && !i.series).map((i) => i.collectionId!))]
-  const known = new Map(await Promise.all(ids.map(async (id) => [id, await collectionSize(id)] as const)))
+  const wanted = items.filter((i) => i.collectionId && ((i.rank && !i.series) || unnamed.has(i)))
+  const ids = [...new Set(wanted.map((i) => i.collectionId!))]
+  const known = new Map(await Promise.all(ids.map(async (id) => [id, await collectionInfo(id)] as const)))
   for (const i of items) {
-    i.series ??= i.collectionId ? known.get(i.collectionId) : undefined
+    const info = i.collectionId ? known.get(i.collectionId) : undefined
+    if (!info) continue
+    if (i.rank) i.series ??= info.size
     if (!i.rarity && i.rank && i.series) i.rarity = TIERS.find(([share]) => i.rank! / i.series! <= share)![1]
+    if (unnamed.has(i) && info.name) {
+      i.title = `${info.name} #${unnamed.get(i)}`
+      i.collection = info.name
+      i.number = unnamed.get(i)
+      unnamed.delete(i)
+    }
   }
 }
 
@@ -420,7 +484,9 @@ export function parseOutpoint(text: string) {
 /** One ordinal by its location, with whoever holds it now. */
 export async function ordinalAt(outpoint: string): Promise<{ item: CardItem | null; owner?: string; spent: boolean }> {
   const txo = await getJson(`${API}/txos/${outpoint}?script=false`)
-  return { item: toCard(txo), owner: txo.owner || undefined, spent: !!txo.spend }
+  const item = toCard(txo)
+  if (item) await fillRarity([item])
+  return { item, owner: txo.owner || undefined, spent: !!txo.spend }
 }
 
 /**

@@ -8,6 +8,7 @@
 import * as THREE from 'three'
 import { CARD_ASPECT, CORNER, loadBack, paintBack, paintFront, type Face } from './cardArt'
 import { twetchTraits, type CardItem } from './feed'
+import { layoutOf, paintFullFront } from './fullArt'
 import { CARD_GRIP, createWarpUniforms, HandRig, Spring, warpMaterial, type HandCue, type WarpUniforms } from './hand'
 
 // --- solved camera + card pose ----------------------------------------------
@@ -207,12 +208,21 @@ function faceTextures(face: Face) {
 }
 type FaceTex = ReturnType<typeof faceTextures>
 
+/** The front in its layout: full art or classic (fullArt.ts decides). */
+function frontFace(item: CardItem, img: HTMLImageElement | null) {
+  return img && layoutOf(item, img).layout === 'full' ? paintFullFront(item, img) : paintFront(item, img)
+}
+
+/** Each card's artwork, kept so its front can be repainted when the owner switches layout. */
+const artOf = new WeakMap<CardItem, HTMLImageElement>()
+
 /** Both faces of a card; each card has its own back. */
 async function cardTextures(item: CardItem, img: HTMLImageElement | null) {
   // Twetch's trait list, if it answers quickly; otherwise the chain's
   await Promise.race([twetchTraits(item), new Promise((r) => setTimeout(r, 2500))])
+  if (img) artOf.set(item, img)
   const back = paintBack(item, await loadBack(item))
-  return { front: faceTextures(paintFront(item, img)), back: faceTextures(back) }
+  return { front: faceTextures(frontFace(item, img)), back: faceTextures(back) }
 }
 type CardTex = Awaited<ReturnType<typeof cardTextures>>
 
@@ -528,6 +538,23 @@ export class FrogStage {
     // the face is hidden right now: swap at once, otherwise flip as soon as we can
     if (this.phase === 'back' || (this.phase === 'flipOut' && this.swapped)) this.swapNow()
     else if (this.phase !== 'flipOut') this.skipRequested = true
+  }
+
+  /** The artwork of the card showing now, if it loaded. */
+  get currentArt() {
+    return this.current ? (artOf.get(this.current) ?? null) : null
+  }
+
+  /** Repaint the showing card's front, after its layout was switched. */
+  redrawFront() {
+    if (!this.current) return
+    const face = faceTextures(frontFace(this.current, this.currentArt))
+    const u = this.frontMat.uniforms
+    ;(u.map.value as THREE.Texture).dispose()
+    ;(u.foilMap.value as THREE.Texture).dispose()
+    u.map.value = face.map
+    u.foilMap.value = face.foil
+    this.flash = 1
   }
 
   /** Keep the face showing (e.g. while the pointer is on the add-to-cart button). */
